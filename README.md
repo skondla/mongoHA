@@ -10,3 +10,4 @@ Setting up mongoDB cluster
 3 replicas
 
 
+# mongoHA
