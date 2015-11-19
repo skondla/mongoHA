@@ -1,0 +1,352 @@
+[hdfs@bigdata1 public]$ pwd
+/home/hdfs/mongoLab/data/public
+[hdfs@bigdata1 public]$ ls -l 
+total 1480488
+-rw-r--r-- 1 hdfs hadoop 1397261641 Nov 17 11:42 Chicago_Crimes.csv
+-rwxr-xr-x 1 hdfs hadoop        384 Nov 17 11:42 chicagoCrimes.sh
+drwxr-xr-x 3 hdfs hadoop       4096 Nov 17 11:44 CollegeScorecard_Raw_Data
+-rw-r--r-- 1 hdfs hadoop  118698935 Nov 17 11:42 Consumer_Complaints.csv
+-rwxr-xr-x 1 hdfs hadoop        380 Nov 17 11:42 custComplaints.sh
+-rwxr-xr-x 1 hdfs hadoop        290 Nov 17 11:42 mongoExportCustComplaints.sh
+-rwxr-xr-x 1 hdfs hadoop        752 Nov 17 11:42 mongoImportCustComplaints.sh
+-rw-r--r-- 1 hdfs hadoop      21945 Nov 17 11:42 View_Profile.csv
+-rwxr-xr-x 1 hdfs hadoop        381 Nov 17 11:42 viewProfile.sh
+[hdfs@bigdata1 public]$ ps -ef|grep mongo
+hdfs     21390 20652  0 12:20 pts/0    00:00:06 /usr/bin/mongod --configsvr --dbpath /apps/data/replshard/test/rs0-1 --port 27031 --bind_ip bigdata1 -v
+hdfs     21403 20652  0 12:20 pts/0    00:00:03 /usr/bin/mongos --configdb bigdata1:27031
+hdfs     27734 20652  0 12:53 pts/0    00:00:00 grep mongo
+[hdfs@bigdata1 public]$ mongo custComplaints
+MongoDB shell version: 3.0.6
+connecting to: custComplaints
+mongos> db.test.insert({x:1})
+WriteResult({ "nInserted" : 1 })
+mongos> rs.status()
+{
+	"info" : "mongos",
+	"ok" : 0,
+	"errmsg" : "replSetGetStatus is not supported through mongos"
+}
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564be873ec34a21ab95a9490")
+}
+  shards:
+	{  "_id" : "rs0",  "host" : "rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" }
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+	{  "_id" : "custComplaints",  "partitioned" : false,  "primary" : "rs0" }
+
+
+mongos> sh.addShard( "rs0/bigdata4:27024","rs0/bigdata5:27025","rs0/bigdata6:27026")
+{ "shardAdded" : "rs0", "ok" : 1 }
+mongos> 
+mongos> db
+custComplaints
+
+mongos> sh.enableSharding("custComplaints")
+{ "ok" : 1 }
+mongos> use config
+switched to db config
+mongos> db.databases.find()
+{ "_id" : "admin", "partitioned" : false, "primary" : "config" }
+{ "_id" : "custComplaints", "partitioned" : true, "primary" : "rs0" }
+mongos> 
+
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564be873ec34a21ab95a9490")
+}
+  shards:
+	{  "_id" : "rs0",  "host" : "rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" }
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+	{  "_id" : "custComplaints",  "partitioned" : true,  "primary" : "rs0" }
+
+mongos> 
+
+[hdfs@bigdata4 ~]$ mongo --host bigdata1 --port 27031
+MongoDB shell version: 3.0.6
+connecting to: bigdata1:27031/test
+configsvr> exit
+bye
+[hdfs@bigdata4 ~]$ mongo --host bigdata4 --port 27024
+MongoDB shell version: 3.0.6
+connecting to: bigdata4:27024/test
+rs0:PRIMARY> 
+
+[hdfs@bigdata4 public]$ ls -l *.csv
+-rw-r--r-- 1 hdfs hdfs 118698935 Nov 17 11:42 Consumer_Complaints.csv
+[hdfs@bigdata4 public]$ cat custComplaints.sh 
+#!/bin/bash
+#cd ~/mongoLab/data/eb/custComplaints
+CURRDIR=`pwd`
+#files=`ls -ltr *.js | awk '{print $9}'`
+
+#echo "Files:
+#$files"
+
+for files in `ls -ltr *.csv | awk '{print $9}'` 
+do
+collection=$(echo $files | cut -f 1 -d '.')
+#mongo --host bigdata4 --port 27024
+mongoimport --host bigdata4 --port 27024 -d custComplaints -c $collection --type csv --file $files --headerline
+echo "Loading of $files into $collection collection is completed"
+done
+[hdfs@bigdata4 public]$ ./custComplaints.sh 
+2015-11-18T13:36:07.327-0500	connected to: bigdata4:27024
+2015-11-18T13:36:10.324-0500	[##......................] custComplaints.Consumer_Complaints	10.4 MB/113.2 MB (9.2%)
+2015-11-18T13:36:13.324-0500	[###.....................] custComplaints.Consumer_Complaints	16.0 MB/113.2 MB (14.1%)
+2015-11-18T13:36:16.324-0500	[######..................] custComplaints.Consumer_Complaints	30.8 MB/113.2 MB (27.2%)
+2015-11-18T13:36:19.324-0500	[#########...............] custComplaints.Consumer_Complaints	44.4 MB/113.2 MB (39.2%)
+2015-11-18T13:36:22.324-0500	[###########.............] custComplaints.Consumer_Complaints	54.7 MB/113.2 MB (48.3%)
+2015-11-18T13:36:25.324-0500	[############............] custComplaints.Consumer_Complaints	60.4 MB/113.2 MB (53.3%)
+2015-11-18T13:36:28.324-0500	[##############..........] custComplaints.Consumer_Complaints	66.2 MB/113.2 MB (58.5%)
+2015-11-18T13:36:31.324-0500	[###############.........] custComplaints.Consumer_Complaints	71.1 MB/113.2 MB (62.8%)
+2015-11-18T13:36:34.324-0500	[###############.........] custComplaints.Consumer_Complaints	74.3 MB/113.2 MB (65.7%)
+2015-11-18T13:36:37.324-0500	[################........] custComplaints.Consumer_Complaints	79.2 MB/113.2 MB (70.0%)
+2015-11-18T13:36:40.324-0500	[#################.......] custComplaints.Consumer_Complaints	80.8 MB/113.2 MB (71.4%)
+2015-11-18T13:36:43.324-0500	[##################......] custComplaints.Consumer_Complaints	85.7 MB/113.2 MB (75.7%)
+2015-11-18T13:36:46.324-0500	[###################.....] custComplaints.Consumer_Complaints	90.5 MB/113.2 MB (80.0%)
+2015-11-18T13:36:49.324-0500	[###################.....] custComplaints.Consumer_Complaints	94.1 MB/113.2 MB (83.1%)
+2015-11-18T13:36:52.324-0500	[#####################...] custComplaints.Consumer_Complaints	99.2 MB/113.2 MB (87.6%)
+2015-11-18T13:36:55.324-0500	[######################..] custComplaints.Consumer_Complaints	104.4 MB/113.2 MB (92.3%)
+2015-11-18T13:36:58.324-0500	[#######################.] custComplaints.Consumer_Complaints	108.9 MB/113.2 MB (96.2%)
+2015-11-18T13:37:01.324-0500	[#######################.] custComplaints.Consumer_Complaints	111.9 MB/113.2 MB (98.8%)
+2015-11-18T13:37:02.791-0500	imported 479510 documents
+Loading of Consumer_Complaints.csv into Consumer_Complaints collection is completed
+[hdfs@bigdata4 public]$ 
+
+mongos> show dbs
+admin           (empty)
+config          0.016GB
+custComplaints  1.000GB
+mongos> db
+config
+mongos> use custComplaints
+switched to db custComplaints
+mongos> show tables
+Consumer_Complaints
+system.indexes
+test
+mongos> db.Consumer_Complaints.count()
+479510
+mongos> db.Consumer_Complaints.findOne()
+{
+	"_id" : ObjectId("564cc517b4db19d98b47968e"),
+	"Date received" : "11/12/2015",
+	"Product" : "Debt collection",
+	"Sub-product" : "Other (phone, health club, etc.)",
+	"Issue" : "Communication tactics",
+	"Sub-issue" : "Threatened to take legal action",
+	"Consumer complaint narrative" : "",
+	"Company public response" : "",
+	"Company" : "Transworld Systems Inc.",
+	"State" : "MD",
+	"ZIP code" : 21208,
+	"Submitted via" : "Phone",
+	"Date sent to company" : "11/12/2015",
+	"Company response to consumer" : "In progress",
+	"Timely response?" : "Yes",
+	"Consumer disputed?" : "",
+	"Complaint ID" : 1652058
+}
+mongos> db.Consumer_Complaints.createIndex({"Product":1,unique:true})
+{
+	"raw" : {
+		"rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" : {
+			"createdCollectionAutomatically" : false,
+			"numIndexesBefore" : 1,
+			"numIndexesAfter" : 2,
+			"ok" : 1,
+			"$gleStats" : {
+				"lastOpTime" : Timestamp(1447872231, 1),
+				"electionId" : ObjectId("564cb91eb4db19d98b47968d")
+			}
+		}
+	},
+	"ok" : 1
+}
+
+mongos> db.Consumer_Complaints.getIndexes()
+[
+	{
+		"v" : 1,
+		"key" : {
+			"_id" : 1
+		},
+		"name" : "_id_",
+		"ns" : "custComplaints.Consumer_Complaints"
+	},
+	{
+		"v" : 1,
+		"key" : {
+			"Product" : 1,
+			"unique" : true
+		},
+		"name" : "Product_1_unique_true",
+		"ns" : "custComplaints.Consumer_Complaints"
+	},
+	{
+		"v" : 1,
+		"key" : {
+			"Complaint ID" : 1,
+			"unique" : true
+		},
+		"name" : "Complaint ID_1_unique_true",
+		"ns" : "custComplaints.Consumer_Complaints"
+	}
+]
+mongos> db.Consumer_Complaints.dropIndex("Product_1_unique_true")
+{
+	"raw" : {
+		"rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" : {
+			"nIndexesWas" : 3,
+			"ok" : 1,
+			"$gleStats" : {
+				"lastOpTime" : Timestamp(1447872972, 1),
+				"electionId" : ObjectId("564cb91eb4db19d98b47968d")
+			}
+		}
+	},
+	"ok" : 1
+}
+mongos> 
+
+rs0:PRIMARY> db.Consumer_Complaints.createIndex({"Complaint ID":1, unique:true})
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 2,
+	"numIndexesAfter" : 3,
+	"ok" : 1
+}
+
+
+mongos> db.Consumer_Complaints.getIndexes()
+[
+	{
+		"v" : 1,
+		"key" : {
+			"_id" : 1
+		},
+		"name" : "_id_",
+		"ns" : "custComplaints.Consumer_Complaints"
+	},
+	{
+		"v" : 1,
+		"key" : {
+			"Complaint ID" : 1,
+			"unique" : true
+		},
+		"name" : "Complaint ID_1_unique_true",
+		"ns" : "custComplaints.Consumer_Complaints"
+	}
+]
+mongos> 
+
+//Create hased index before you can created hash based sharding.
+
+mongos> db.Consumer_Complaints.createIndex({"Complaint ID":"hashed"})
+
+{
+	"raw" : {
+		"rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" : {
+			"createdCollectionAutomatically" : false,
+			"numIndexesBefore" : 2,
+			"numIndexesAfter" : 3,
+			"ok" : 1,
+			"$gleStats" : {
+				"lastOpTime" : Timestamp(1447873264, 1),
+				"electionId" : ObjectId("564cb91eb4db19d98b47968d")
+			}
+		}
+	},
+	"ok" : 1
+}
+
+mongos> sh.shardCollection("custComplaints.Consumer_Complaints",{"Complaint ID":"hashed"})
+{ "collectionsharded" : "custComplaints.Consumer_Complaints", "ok" : 1 }
+
+
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564be873ec34a21ab95a9490")
+}
+  shards:
+	{  "_id" : "rs0",  "host" : "rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" }
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+	{  "_id" : "custComplaints",  "partitioned" : true,  "primary" : "rs0" }
+		custComplaints.Consumer_Complaints
+			shard key: { "Complaint ID" : "hashed" }
+			chunks:
+				rs0	13
+			{ "Complaint ID" : { "$minKey" : 1 } } -->> { "Complaint ID" : NumberLong("-7699584321607143033") } on : rs0 Timestamp(1, 0) 
+			{ "Complaint ID" : NumberLong("-7699584321607143033") } -->> { "Complaint ID" : NumberLong("-6179867692268657426") } on : rs0 Timestamp(1, 1) 
+			{ "Complaint ID" : NumberLong("-6179867692268657426") } -->> { "Complaint ID" : NumberLong("-4654236978088873586") } on : rs0 Timestamp(1, 2) 
+			{ "Complaint ID" : NumberLong("-4654236978088873586") } -->> { "Complaint ID" : NumberLong("-3131607749313052385") } on : rs0 Timestamp(1, 3) 
+			{ "Complaint ID" : NumberLong("-3131607749313052385") } -->> { "Complaint ID" : NumberLong("-1620179906921138739") } on : rs0 Timestamp(1, 4) 
+			{ "Complaint ID" : NumberLong("-1620179906921138739") } -->> { "Complaint ID" : NumberLong("-84831622613440791") } on : rs0 Timestamp(1, 5) 
+			{ "Complaint ID" : NumberLong("-84831622613440791") } -->> { "Complaint ID" : NumberLong("1447835509542529299") } on : rs0 Timestamp(1, 6) 
+			{ "Complaint ID" : NumberLong("1447835509542529299") } -->> { "Complaint ID" : NumberLong("2965794820948345669") } on : rs0 Timestamp(1, 7) 
+			{ "Complaint ID" : NumberLong("2965794820948345669") } -->> { "Complaint ID" : NumberLong("4478278907692088958") } on : rs0 Timestamp(1, 8) 
+			{ "Complaint ID" : NumberLong("4478278907692088958") } -->> { "Complaint ID" : NumberLong("6022084763240267697") } on : rs0 Timestamp(1, 9) 
+			{ "Complaint ID" : NumberLong("6022084763240267697") } -->> { "Complaint ID" : NumberLong("7553950481984965467") } on : rs0 Timestamp(1, 10) 
+			{ "Complaint ID" : NumberLong("7553950481984965467") } -->> { "Complaint ID" : NumberLong("9086180031516014784") } on : rs0 Timestamp(1, 11) 
+			{ "Complaint ID" : NumberLong("9086180031516014784") } -->> { "Complaint ID" : { "$maxKey" : 1 } } on : rs0 Timestamp(1, 12) 
+
+mongos> 
+
+rs0:PRIMARY> db.Consumer_Complaints.find({"Complaint ID" : 1651245}).pretty()
+{
+	"_id" : ObjectId("564cc517b4db19d98b479690"),
+	"Date received" : "11/12/2015",
+	"Product" : "Credit reporting",
+	"Sub-product" : "",
+	"Issue" : "Incorrect information on credit report",
+	"Sub-issue" : "Personal information",
+	"Consumer complaint narrative" : "",
+	"Company public response" : "Company believes complaint caused principally by actions of third party outside the control or direction of the company",
+	"Company" : "Credit Karma, Inc.",
+	"State" : "OH",
+	"ZIP code" : "442XX",
+	"Submitted via" : "Web",
+	"Date sent to company" : "11/12/2015",
+	"Company response to consumer" : "Closed with explanation",
+	"Timely response?" : "Yes",
+	"Consumer disputed?" : "",
+	"Complaint ID" : 1651245
+}
+rs0:PRIMARY> 
+
+
+

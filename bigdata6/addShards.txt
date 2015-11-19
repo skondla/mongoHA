@@ -1,0 +1,72 @@
+[hdfs@bigdata6 admin]$ mongo --host bigdata1 --port 27031
+MongoDB shell version: 3.0.6
+connecting to: bigdata1:27031/test
+configsvr> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564be873ec34a21ab95a9490")
+}
+  shards:
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+
+configsvr> 
+
+//Connect to mongos and add Shards
+
+[hdfs@bigdata1 ~]$ mongo
+MongoDB shell version: 3.0.6
+connecting to: test
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564be873ec34a21ab95a9490")
+}
+  shards:
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+
+
+mongos> sh.addShard("rs0/bigdata4:27024","rs0/bigdata5:27025","rs0/bigdata6:27026")
+{ "shardAdded" : "rs0", "ok" : 1 }
+{ "shardAdded" : "rs0", "ok" : 1 }
+{ "shardAdded" : "rs0", "ok" : 1 }
+
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564be873ec34a21ab95a9490")
+}
+  shards:
+	{  "_id" : "rs0",  "host" : "rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" }
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+
+

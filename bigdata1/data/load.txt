@@ -1,0 +1,92 @@
+//before load
+
+mongos> sh.status()
+--- Sharding Status ---
+  sharding version: {
+        "_id" : 1,
+        "minCompatibleVersion" : 5,
+        "currentVersion" : 6,
+        "clusterId" : ObjectId("564bf0e7f24753d29f59de5b")
+}
+  shards:
+        {  "_id" : "rs0",  "host" : "rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" }
+  balancer:
+        Currently enabled:  yes
+        Currently running:  no
+        Failed balancer rounds in last 5 attempts:  0
+        Migration Results for the last 24 hours:
+                No recent migrations
+  databases:
+        {  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+        {  "_id" : "custComplaints",  "partitioned" : true,  "primary" : "rs0" }
+                custComplaints.Consumer_Complaints
+                        shard key: { "Complaint ID" : "hashed" }
+                        chunks:
+                                rs0     2
+                        { "Complaint ID" : { "$minKey" : 1 } } -->> { "Complaint ID" : NumberLong(0) } on : rs0 Timestamp(1, 1)
+                        { "Complaint ID" : NumberLong(0) } -->> { "Complaint ID" : { "$maxKey" : 1 } } on : rs0 Timestamp(1, 2)
+
+mongos>
+
+//after load
+
+
+[hdfs@bigdata4 custComplaints]$ ./custComplaints.sh
+2015-11-18T21:47:12.783-0500    connected to: bigdata4:27024
+2015-11-18T21:47:15.779-0500    [#.......................] custComplaints.Consumer_Complaints   8.5 MB/113.2 MB (7.5%)
+2015-11-18T21:47:18.779-0500    [###.....................] custComplaints.Consumer_Complaints   16.0 MB/113.2 MB (14.1%)
+2015-11-18T21:47:21.779-0500    [#####...................] custComplaints.Consumer_Complaints   28.0 MB/113.2 MB (24.8%)
+2015-11-18T21:47:24.779-0500    [#######.................] custComplaints.Consumer_Complaints   33.8 MB/113.2 MB (29.9%)
+2015-11-18T21:47:27.779-0500    [#########...............] custComplaints.Consumer_Complaints   44.4 MB/113.2 MB (39.2%)
+2015-11-18T21:47:30.779-0500    [##########..............] custComplaints.Consumer_Complaints   49.9 MB/113.2 MB (44.0%)
+2015-11-18T21:47:33.779-0500    [###########.............] custComplaints.Consumer_Complaints   54.7 MB/113.2 MB (48.3%)
+2015-11-18T21:47:36.779-0500    [############............] custComplaints.Consumer_Complaints   58.2 MB/113.2 MB (51.4%)
+2015-11-18T21:47:39.779-0500    [############............] custComplaints.Consumer_Complaints   61.0 MB/113.2 MB (53.9%)
+2015-11-18T21:47:42.779-0500    [#############...........] custComplaints.Consumer_Complaints   62.9 MB/113.2 MB (55.6%)
+2015-11-18T21:47:45.789-0500    [##############..........] custComplaints.Consumer_Complaints   66.2 MB/113.2 MB (58.5%)
+2015-11-18T21:47:48.779-0500    [##############..........] custComplaints.Consumer_Complaints   69.8 MB/113.2 MB (61.6%)
+2015-11-18T21:47:51.784-0500    [###############.........] custComplaints.Consumer_Complaints   74.3 MB/113.2 MB (65.7%)
+2015-11-18T21:47:54.779-0500    [################........] custComplaints.Consumer_Complaints   77.6 MB/113.2 MB (68.5%)
+2015-11-18T21:47:57.779-0500    [#################.......] custComplaints.Consumer_Complaints   81.8 MB/113.2 MB (72.3%)
+2015-11-18T21:48:00.779-0500    [#################.......] custComplaints.Consumer_Complaints   84.1 MB/113.2 MB (74.3%)
+2015-11-18T21:48:03.779-0500    [##################......] custComplaints.Consumer_Complaints   88.9 MB/113.2 MB (78.6%)
+2015-11-18T21:48:06.779-0500    [###################.....] custComplaints.Consumer_Complaints   92.1 MB/113.2 MB (81.4%)
+2015-11-18T21:48:09.779-0500    [###################.....] custComplaints.Consumer_Complaints   94.1 MB/113.2 MB (83.1%)
+2015-11-18T21:48:12.779-0500    [####################....] custComplaints.Consumer_Complaints   95.3 MB/113.2 MB (84.2%)
+2015-11-18T21:48:15.779-0500    [####################....] custComplaints.Consumer_Complaints   96.8 MB/113.2 MB (85.5%)
+2015-11-18T21:48:18.779-0500    [#####################...] custComplaints.Consumer_Complaints   101.4 MB/113.2 MB (89.6%)
+2015-11-18T21:48:21.779-0500    [######################..] custComplaints.Consumer_Complaints   104.4 MB/113.2 MB (92.3%)
+2015-11-18T21:48:24.779-0500    [######################..] custComplaints.Consumer_Complaints   107.5 MB/113.2 MB (94.9%)
+2015-11-18T21:48:27.779-0500    [#######################.] custComplaints.Consumer_Complaints   111.6 MB/113.2 MB (98.6%)
+2015-11-18T21:48:30.135-0500    imported 479510 documents
+Loading of Consumer_Complaints.csv into Consumer_Complaints collection is completed
+
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"minCompatibleVersion" : 5,
+	"currentVersion" : 6,
+	"clusterId" : ObjectId("564bf0e7f24753d29f59de5b")
+}
+  shards:
+	{  "_id" : "rs0",  "host" : "rs0/bigdata4:27024,bigdata5:27025,bigdata6:27026" }
+  balancer:
+	Currently enabled:  yes
+	Currently running:  no
+	Failed balancer rounds in last 5 attempts:  0
+	Migration Results for the last 24 hours: 
+		No recent migrations
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+	{  "_id" : "custComplaints",  "partitioned" : true,  "primary" : "rs0" }
+		custComplaints.Consumer_Complaints
+			shard key: { "Complaint ID" : "hashed" }
+			chunks:
+				rs0	2
+			{ "Complaint ID" : { "$minKey" : 1 } } -->> { "Complaint ID" : NumberLong(0) } on : rs0 Timestamp(1, 1) 
+			{ "Complaint ID" : NumberLong(0) } -->> { "Complaint ID" : { "$maxKey" : 1 } } on : rs0 Timestamp(1, 2) 
+	{  "_id" : "test",  "partitioned" : false,  "primary" : "rs0" }
+
+mongos> 
+

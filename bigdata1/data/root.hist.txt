@@ -1,0 +1,14 @@
+service mongod status
+service mongod stop
+chkconfig | grep mongo
+chkconfig mongod off
+chkconfig | grep mongo
+chkconfig mongodb-mms-automation-agent off
+chkconfig | grep mongo
+service mongodb-mms-automation-agent status
+service mongodb-mms-automation-agent stop
+./dcli -g mynodes "service mongodb-mms-automation-agent stop"
+./dcli -g mynodes "service mongod stop"
+./dcli -g mynodes "chkconfig mongod off"
+./dcli -g mynodes "chkconfig mongodb-mms-automation-agent off"
+
